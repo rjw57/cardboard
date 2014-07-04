@@ -3,6 +3,7 @@ package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.opengl.Matrix;
 import android.util.Log;
 import android.view.TextureView;
 
@@ -27,12 +28,17 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
         public byte[] imageData;
     }
 
+    public interface HandMatrixCallback {
+        public void onMarkerMatrix(float[] matrix);
+    }
+
     private TextureView mTextureView;
     private Camera mCamera;
     private SingleTracker mTracker;
     private Camera.Size mPreviewSize;
     private ARToolKitPlus.Camera mTrackerCamera;
     private HeadTransform mHeadTransform;
+    private HandMatrixCallback mCallback;
 
     // push images onto this queue when they arrive
     private ArrayBlockingQueue<CapturedImage> mLumImageQueue;
@@ -46,6 +52,13 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
 
     public void setLastHeadTransform(HeadTransform headTransform) {
         mHeadTransform = headTransform;
+    }
+
+    public void setHandMatrixCallback(HandMatrixCallback handMatrixCallback) {
+        mCallback = handMatrixCallback;
+        if(mDetectorThread != null) {
+            mDetectorThread.setCallback(handMatrixCallback);
+        }
     }
 
     @Override
@@ -107,6 +120,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
         // Start detector thread
         mLumImageQueue = new ArrayBlockingQueue<CapturedImage>(1);
         mDetectorThread = new DetectorThread(mTracker, mLumImageQueue);
+        mDetectorThread.setCallback(mCallback);
         mDetectorThread.start();
 
         // Start capturing video
@@ -177,11 +191,16 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
     private class DetectorThread extends Thread {
         private ArrayBlockingQueue<CapturedImage> mLumImageQueue;
         private Tracker mTracker;
+        private HandMatrixCallback mCallback;
 
         public DetectorThread(Tracker tracker, ArrayBlockingQueue<CapturedImage> lumImageQueue) {
             super();
             mTracker = tracker;
             mLumImageQueue = lumImageQueue;
+        }
+
+        public void setCallback(HandMatrixCallback callback) {
+            mCallback = callback;
         }
 
         @Override
@@ -198,7 +217,9 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
                     mTracker.arDetectMarkerLite(image.imageData, 128, markers, markerNumArray);
                     int nMarkers = markerNumArray[0];
 
-                    for(int i=0; i<nMarkers; i++) {
+                    float[] markerOpenGLMatrix = null;
+
+                    for(int i=0; (i<nMarkers) && (markerOpenGLMatrix == null); i++) {
                         // A bit strange, but advance the pointer to position "i"
                         markers.position(i);
 
@@ -208,15 +229,25 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
                             continue;
                         }
 
-                        // Compute marker transformation matrix
-                        float[] matrix = new float[3*4];
+                        // Compute marker transformation matrix (i.e. matrix transforming from
+                        // marker frame to camera frame).
+                        float[] markerMatrix = new float[3*4];
                         float[] centre = {0.f, 0.f};
-                        mTracker.rppGetTransMat(markers, centre, 0.035f, matrix);
+                        mTracker.rppGetTransMat(markers, centre, 0.035f, markerMatrix);
 
-                        Log.i(TAG, "Matrix:");
+                        // Convert matrix to OpenGL-style matrix extending it with a 0,0,0,1 row
+                        markerOpenGLMatrix = new float[4*4];
+                        Matrix.setIdentityM(markerOpenGLMatrix, 0);
                         for(int r=0; r<3; r++) {
-                            Log.i(TAG, "[ " + matrix[r*4 + 0] + ", " + matrix[r*4 + 1] + ", " + matrix[r*4 + 2] + ", " + matrix[r*4 + 3] + " ]");
+                            for(int c=0; c<4; c++) {
+                                markerOpenGLMatrix[r + c*4] = markerMatrix[c + r*4];
+                            }
                         }
+                    }
+
+                    // Inform the callback
+                    if(mCallback != null) {
+                        mCallback.onMarkerMatrix(markerOpenGLMatrix);
                     }
                 } catch (InterruptedException e) {
                     Log.i(TAG, "detector thread interrupted");

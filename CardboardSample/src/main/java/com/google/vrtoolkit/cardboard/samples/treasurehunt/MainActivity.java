@@ -82,6 +82,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private float[] mHeadView;
     private float[] mModelViewProjection;
     private float[] mModelView;
+    private float[] mHandModel; // transform from hand space to phone camera
 
     private float[] mModelFloor;
 
@@ -164,6 +165,12 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         mOverlayView.show3DToast("Pull the magnet when you find an object.");
 
         mHandTracker = new HandTracker((TextureView) findViewById(R.id.camera_underlay));
+        mHandTracker.setHandMatrixCallback(new HandTracker.HandMatrixCallback() {
+            @Override
+            public void onMarkerMatrix(float[] matrix) {
+                mHandModel = matrix;
+            }
+        });
     }
 
     @Override
