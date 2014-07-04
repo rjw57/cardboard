@@ -132,6 +132,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
         mLumImageQueue = new ArrayBlockingQueue<CapturedImage>(1);
         mDetectorThread = new DetectorThread(mTracker, mLumImageQueue);
         mDetectorThread.setCallback(mCallback);
+        mDetectorThread.setPriority(Thread.MIN_PRIORITY);
         mDetectorThread.start();
 
         // Start capturing video
