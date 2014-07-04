@@ -37,4 +37,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:support-v4:20.+'
+
+    // FIXME: Don't hard code ARM into platform
+    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.0+'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.0+', classifier: 'android-arm'
 }

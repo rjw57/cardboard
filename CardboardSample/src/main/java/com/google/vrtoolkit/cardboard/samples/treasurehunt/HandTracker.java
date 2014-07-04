@@ -5,6 +5,8 @@ import android.hardware.Camera;
 import android.util.Log;
 import android.view.TextureView;
 
+import org.bytedeco.javacpp.ARToolKitPlus;
+
 import java.io.IOException;
 
 /**
@@ -15,10 +17,13 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
 
     private TextureView mTextureView;
     private Camera mCamera;
+    private ARToolKitPlus mARToolkitPlus;
 
     public HandTracker(TextureView previewView) {
         mTextureView = previewView;
         mTextureView.setSurfaceTextureListener(this);
+
+        mARToolkitPlus = new ARToolKitPlus();
     }
 
     @Override
