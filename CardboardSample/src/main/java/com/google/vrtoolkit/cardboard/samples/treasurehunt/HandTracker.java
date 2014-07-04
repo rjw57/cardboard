@@ -35,7 +35,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
 
     private TextureView mTextureView;
     private Camera mCamera;
-    private SingleTracker mTracker;
+    private MultiTracker mTracker;
     private Camera.Size mPreviewSize;
     private ARToolKitPlus.Camera mTrackerCamera;
     private float[] mHeadTransform;
@@ -81,6 +81,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
         Camera.Parameters cameraParameters = mCamera.getParameters();
         List<int[]> supportedPreviewFpsRange = cameraParameters.getSupportedPreviewFpsRange();
 
+        cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         cameraParameters.setPreviewSize(1280, 720);
         for(int j=0; j<supportedPreviewFpsRange.size(); ++j) {
             int[] range = supportedPreviewFpsRange.get(j);
@@ -94,14 +95,14 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
         cameraParameters = mCamera.getParameters();
 
         mPreviewSize = cameraParameters.getPreviewSize();
-        mTracker = new SingleTracker(mPreviewSize.width, mPreviewSize.height);
+        mTracker = new MultiTracker(mPreviewSize.width, mPreviewSize.height);
 
         mTracker.setBorderWidth(0.25f);
         mTracker.setPixelFormat(ARToolKitPlus.PIXEL_FORMAT_LUM);
         mTracker.setUndistortionMode(ARToolKitPlus.UNDIST_NONE);
         mTracker.setMarkerMode(ARToolKitPlus.MARKER_ID_SIMPLE);
-        mTracker.setImageProcessingMode(ARToolKitPlus.IMAGE_FULL_RES);
-        mTracker.activateAutoThreshold(true);
+        mTracker.setImageProcessingMode(ARToolKitPlus.IMAGE_HALF_RES);
+        // mTracker.activateAutoThreshold(true);
 
         ARToolKitPlus.Camera cam = new ARToolKitPlus.Camera();
         Log.i(TAG, "cam: " + cam);
@@ -224,7 +225,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
                     ARMarkerInfo markers = new ARMarkerInfo(null);
                     int[] markerNumArray = { -1, };
 
-                    mTracker.arDetectMarkerLite(image.imageData, 128, markers, markerNumArray);
+                    mTracker.arDetectMarker(image.imageData, 128, markers, markerNumArray);
                     int nMarkers = markerNumArray[0];
 
                     float[] markerOpenGLMatrix = null;

@@ -22,22 +22,22 @@ package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 public final class WorldLayoutData {
     public static final float[] HAND_COORDS = new float[] {
             // Front face
-            -0.0175f, 0.0175f, 0.f,
-            -0.0175f, -0.0175f, 0.f,
-            0.0175f, 0.0175f, 0.f,
-            -0.0175f, -0.0175f, 0.f,
-            0.0175f, -0.0175f, 0.f,
-            0.0175f, 0.0175f, 0.f,
+            -0.05f, 0.05f, 0.f,
+            -0.05f, -0.05f, 0.f,
+            0.05f, 0.05f, 0.f,
+            -0.05f, -0.05f, 0.f,
+            0.05f, -0.05f, 0.f,
+            0.05f, 0.05f, 0.f,
     };
 
     public static final float[] HAND_COLORS = new float[]{
             // green
             0f, 0.5273f, 0.2656f, 1.0f,
             0f, 0.5273f, 0.2656f, 1.0f,
+            0.0f, 0.3398f, 0.9023f, 1.0f,
             0f, 0.5273f, 0.2656f, 1.0f,
             0f, 0.5273f, 0.2656f, 1.0f,
-            0f, 0.5273f, 0.2656f, 1.0f,
-            0f, 0.5273f, 0.2656f, 1.0f,
+            0.0f, 0.3398f, 0.9023f, 1.0f,
     };
 
     public static final float[] HAND_NORMALS = new float[]{
