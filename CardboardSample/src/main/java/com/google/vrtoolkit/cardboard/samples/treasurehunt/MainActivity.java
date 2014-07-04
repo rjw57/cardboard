@@ -17,7 +17,6 @@
 package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 
 import android.content.Context;
-import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Bundle;
@@ -66,6 +65,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private FloatBuffer mCubeFoundColors;
     private FloatBuffer mCubeNormals;
 
+    private FloatBuffer mHandVertices;
+    private FloatBuffer mHandColors;
+    private FloatBuffer mHandNormals;
+
     private int mGlProgram;
     private int mPositionParam;
     private int mNormalParam;
@@ -82,7 +85,8 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private float[] mHeadView;
     private float[] mModelViewProjection;
     private float[] mModelView;
-    private float[] mHandModel; // transform from hand space to phone camera
+    private float[] mModelHand; // transform from hand space to phone camera
+    private float[] mModelHandVolatile; // may be changed by a different thread
 
     private float[] mModelFloor;
 
@@ -168,7 +172,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         mHandTracker.setHandMatrixCallback(new HandTracker.HandMatrixCallback() {
             @Override
             public void onMarkerMatrix(float[] matrix) {
-                mHandModel = matrix;
+                mModelHandVolatile = matrix;
+                if(matrix != null) {
+                    Log.i(TAG, "[ " + matrix[12] + ", " + matrix[13] + ", " + matrix[14] + ", " + " ]");
+                }
             }
         });
     }
@@ -217,6 +224,24 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         mCubeNormals.put(DATA.CUBE_NORMALS);
         mCubeNormals.position(0);
 
+        ByteBuffer bbHandVertices = ByteBuffer.allocateDirect(DATA.HAND_COORDS.length * 4);
+        bbHandVertices.order(ByteOrder.nativeOrder());
+        mHandVertices = bbHandVertices.asFloatBuffer();
+        mHandVertices.put(DATA.HAND_COORDS);
+        mHandVertices.position(0);
+
+        ByteBuffer bbHandColors = ByteBuffer.allocateDirect(DATA.HAND_COLORS.length * 4);
+        bbHandColors.order(ByteOrder.nativeOrder());
+        mHandColors = bbHandColors.asFloatBuffer();
+        mHandColors.put(DATA.HAND_COLORS);
+        mHandColors.position(0);
+
+        ByteBuffer bbHandNormals = ByteBuffer.allocateDirect(DATA.HAND_NORMALS.length * 4);
+        bbHandNormals.order(ByteOrder.nativeOrder());
+        mHandNormals = bbHandNormals.asFloatBuffer();
+        mHandNormals.put(DATA.HAND_NORMALS);
+        mHandNormals.position(0);
+        
         // make a floor
         ByteBuffer bbFloorVertices = ByteBuffer.allocateDirect(DATA.FLOOR_COORDS.length * 4);
         bbFloorVertices.order(ByteOrder.nativeOrder());
@@ -302,6 +327,9 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
         headTransform.getHeadView(mHeadView, 0);
 
+        // Copy the volatile model matrix
+        mModelHand = mModelHandVolatile;
+
         checkGLError("onReadyToDraw");
     }
 
@@ -336,6 +364,12 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         Matrix.multiplyMM(mModelView, 0, mView, 0, mModelCube, 0);
         Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0, mModelView, 0);
         drawCube();
+
+        if(mModelHand != null) {
+            Matrix.multiplyMM(mModelView, 0, mView, 0, mModelHand, 0);
+            Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0, mModelView, 0);
+            drawHand();
+        }
 
         // Set mModelView for the floor, so we draw floor in the correct location
         Matrix.multiplyMM(mModelView, 0, mView, 0, mModelFloor, 0);
@@ -384,6 +418,42 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         }
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
         checkGLError("Drawing cube");
+    }
+
+    /**
+     * Draw the hand.
+     */
+    public void drawHand() {
+        if(mModelHand == null) {
+            return;
+        }
+        
+        // This is not the floor!
+        GLES20.glUniform1f(mIsFloorParam, 0f);
+
+        // Set the Model in the shader, used to calculate lighting
+        GLES20.glUniformMatrix4fv(mModelParam, 1, false, mModelHand, 0);
+
+        // Set the ModelView in the shader, used to calculate lighting
+        GLES20.glUniformMatrix4fv(mModelViewParam, 1, false, mModelView, 0);
+
+        // Set the position of the hand
+        GLES20.glVertexAttribPointer(mPositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
+                false, 0, mHandVertices);
+
+        // Set the ModelViewProjection matrix in the shader.
+        GLES20.glUniformMatrix4fv(mModelViewProjectionParam, 1, false, mModelViewProjection, 0);
+
+        // Set the normal positions of the hand, again for shading
+        GLES20.glVertexAttribPointer(mNormalParam, 3, GLES20.GL_FLOAT,
+                false, 0, mHandNormals);
+
+
+        GLES20.glVertexAttribPointer(mColorParam, 4, GLES20.GL_FLOAT, false,
+                0, mHandColors);
+        
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
+        checkGLError("Drawing hand");
     }
 
     /**

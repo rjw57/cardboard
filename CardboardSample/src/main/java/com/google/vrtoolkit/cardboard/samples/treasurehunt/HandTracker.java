@@ -14,6 +14,7 @@ import org.bytedeco.javacpp.ARToolKitPlus.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -24,7 +25,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
     private static final String TAG = "HandTracker";
 
     private class CapturedImage {
-        public HeadTransform headTransform;
+        public float[] headTransform;
         public byte[] imageData;
     }
 
@@ -37,7 +38,7 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
     private SingleTracker mTracker;
     private Camera.Size mPreviewSize;
     private ARToolKitPlus.Camera mTrackerCamera;
-    private HeadTransform mHeadTransform;
+    private float[] mHeadTransform;
     private HandMatrixCallback mCallback;
 
     // push images onto this queue when they arrive
@@ -48,10 +49,12 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
     public HandTracker(TextureView previewView) {
         mTextureView = previewView;
         mTextureView.setSurfaceTextureListener(this);
+        mHeadTransform = new float[4*4];
+        Matrix.setIdentityM(mHeadTransform, 0);
     }
 
     public void setLastHeadTransform(HeadTransform headTransform) {
-        mHeadTransform = headTransform;
+        headTransform.getHeadView(mHeadTransform, 0);
     }
 
     public void setHandMatrixCallback(HandMatrixCallback handMatrixCallback) {
@@ -76,12 +79,19 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
 
         // Initialise the marker tracker
         Camera.Parameters cameraParameters = mCamera.getParameters();
+        List<int[]> supportedPreviewFpsRange = cameraParameters.getSupportedPreviewFpsRange();
 
-        /*
-        cameraParameters.setPreviewSize(1920, 1080);
+        cameraParameters.setPreviewSize(1280, 720);
+        for(int j=0; j<supportedPreviewFpsRange.size(); ++j) {
+            int[] range = supportedPreviewFpsRange.get(j);
+
+            if((range[1] < 20000) && (range[0] > 10000)) {
+                Log.i(TAG, "Setting FPS range to " + range[0] + ", " + range[1]);
+                cameraParameters.setPreviewFpsRange(range[0], range[1]);
+            }
+        }
         mCamera.setParameters(cameraParameters);
         cameraParameters = mCamera.getParameters();
-        */
 
         mPreviewSize = cameraParameters.getPreviewSize();
         mTracker = new SingleTracker(mPreviewSize.width, mPreviewSize.height);
@@ -243,6 +253,10 @@ public class HandTracker implements TextureView.SurfaceTextureListener, Camera.P
                                 markerOpenGLMatrix[r + c*4] = markerMatrix[c + r*4];
                             }
                         }
+
+                        // Add in head transform
+                        Matrix.multiplyMM(markerOpenGLMatrix, 0,
+                                image.headTransform, 0, markerOpenGLMatrix, 0);
                     }
 
                     // Inform the callback
