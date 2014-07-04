@@ -34,11 +34,19 @@ android {
     }
 }
 
+repositories {
+    // Require the snapshot repository due to https://github.com/bytedeco/javacv/issues/10
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:support-v4:20.+'
 
     // FIXME: Don't hard code ARM into platform
-    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.0+'
-    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.0+', classifier: 'android-arm'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.+'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'artoolkitplus', version: '2.3.+', classifier: 'android-arm'
+
+    //compile group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '2.4.+'
+    //compile group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '2.4.+', classifier: 'android-arm'
 }

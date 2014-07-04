@@ -277,6 +277,8 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
      */
     @Override
     public void onNewFrame(HeadTransform headTransform) {
+        mHandTracker.setLastHeadTransform(headTransform);
+
         GLES20.glUseProgram(mGlProgram);
 
         mModelViewProjectionParam = GLES20.glGetUniformLocation(mGlProgram, "u_MVP");
