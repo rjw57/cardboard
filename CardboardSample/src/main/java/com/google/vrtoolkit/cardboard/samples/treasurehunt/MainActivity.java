@@ -17,11 +17,14 @@
 package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 
 import android.content.Context;
+import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
+import android.view.TextureView;
+
 import com.google.vrtoolkit.cardboard.*;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -89,6 +92,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private Vibrator mVibrator;
 
     private CardboardOverlayView mOverlayView;
+    private HandTracker mHandTracker;
 
     /**
      * Converts a raw text file, saved as a resource, into an OpenGL ES shader
@@ -158,6 +162,8 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
         mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
         mOverlayView.show3DToast("Pull the magnet when you find an object.");
+
+        mHandTracker = new HandTracker((TextureView) findViewById(R.id.camera_underlay));
     }
 
     @Override
@@ -454,9 +460,11 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         float pitch = (float)Math.atan2(objPositionVec[1], -objPositionVec[2]);
         float yaw = (float)Math.atan2(objPositionVec[0], -objPositionVec[2]);
 
+        /*
         Log.i(TAG, "Object position: X: " + objPositionVec[0]
                 + "  Y: " + objPositionVec[1] + " Z: " + objPositionVec[2]);
         Log.i(TAG, "Object Pitch: " + pitch +"  Yaw: " + yaw);
+        */
 
         return (Math.abs(pitch) < PITCH_LIMIT) && (Math.abs(yaw) < YAW_LIMIT);
     }
